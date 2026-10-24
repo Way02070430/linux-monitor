@@ -94,8 +94,8 @@ def save_snapshot(timestamp,cpu,memory,disk):
         print("快照保存失败：",error)
         logging.exception("快照保存失败")
 
-if __name__ == "__main__":
 
+def main():
     validate_config()
 
     log_file = Path(__file__).resolve().parent / "monitor.log"
@@ -158,3 +158,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n监控已停止。")
         logging.info("用户停止监控。")
+
+
+if __name__ == "__main__":
+    main()
