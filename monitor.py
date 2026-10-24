@@ -6,6 +6,8 @@ from pathlib import Path
 import config
 import json
 
+from logging.handlers import RotatingFileHandler
+
 def validate_config():
     thresholds = [
         ("CPU", config.cpu_threshold),
@@ -98,11 +100,17 @@ if __name__ == "__main__":
 
     log_file = Path(__file__).resolve().parent / "monitor.log"
 
+    handler = RotatingFileHandler(
+        log_file,
+        maxBytes=1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+
     logging.basicConfig(
-        filename=str(log_file),
+        handlers=[handler],
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
-        encoding="utf-8",
     )
 
     logging.info("监控程序启动")

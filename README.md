@@ -60,4 +60,5 @@ CPU 采样约需 1 秒，因此实际输出间隔还包含采样和处理耗时�
 python test_alerts.py
 python test_snapshot.py
 python -m unittest -v test_collectors
+python test_log_rotation.py
 ```
