@@ -22,16 +22,34 @@ def validate_config():
 
 # 采集各个指标的数值
 def collect_metrics():
-    cpu = psutil.cpu_percent(interval=1)
-    memory = psutil.virtual_memory()
+    # 各项独立处理错误，失败返回 None，不冒充 0% 或使用旧数据。
     try:
-        disk = psutil.disk_usage(config.disk_path)
-        disk_percent = disk.percent
-    except OSError:
+        cpu = psutil.cpu_percent(interval=1)
+    except (OSError, psutil.Error):
+        logging.exception("CPU 采集失败")
+        cpu = None
+
+    try:
+        memory_percent = psutil.virtual_memory().percent
+    except (OSError, psutil.Error):
+        logging.exception("内存采集失败")
+        memory_percent = None
+
+    try:
+        disk_percent = psutil.disk_usage(config.disk_path).percent
+    except (OSError, psutil.Error):
         logging.exception("磁盘采集失败")
         disk_percent = None
 
-    return cpu, memory.percent, disk_percent
+    return cpu, memory_percent, disk_percent
+
+
+def format_metric(value):
+    # 终端和日志统一显示缺失数据，避免输出 None%。
+    if value is None:
+        return "采集失败"
+    return str(value) + "%"
+
 
 # 告警函数
 def check_alert(name, value, threshold, alerting):
@@ -104,18 +122,15 @@ if __name__ == "__main__":
             save_snapshot(timestamp,cpu,memory,disk)
             print("采集时间：", timestamp)
 
-            print("CPU 使用率：", cpu, "%")
-            print("内存使用率：", memory, "%")
-            if disk is None:
-                print("磁盘使用率：采集失败")
-            else:
-                print("磁盘使用率：", disk, "%")
+            print("CPU 使用率：", format_metric(cpu))
+            print("内存使用率：", format_metric(memory))
+            print("磁盘使用率：", format_metric(disk))
 
             logging.info(
-                "CPU：%s%%，内存：%s%%，磁盘：%s",
-                cpu,
-                memory,
-                "采集失败" if disk is None else str(disk) + "%",
+                "CPU：%s，内存：%s，磁盘：%s",
+                format_metric(cpu),
+                format_metric(memory),
+                format_metric(disk),
             )
 
             cpu_alerting = check_alert(
