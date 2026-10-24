@@ -62,3 +62,33 @@ python test_snapshot.py
 python -m unittest -v test_collectors
 python test_log_rotation.py
 ```
+
+## HTTP 指标客户端
+
+此功能用于本地 HTTP 和数据采集练习。Windows/Ubuntu 的终端中需分别运行监控、HTTP 服务和客户端；先进入项目目录并激活虚拟环境。
+
+```bash
+# 终端一：持续生成最新指标
+python monitor.py
+
+# 终端二：在项目目录提供本机文件访问服务
+python -m http.server 8000 --bind 127.0.0.1
+
+# 终端三：读取一次快照
+python fetch_metrics.py
+```
+
+客户端检查连接/读取超时、HTTP 错误、JSON 格式、必需字段、指标数值范围和数据年龄。
+`null` 表示采集失败，不能当成 0%；过期快照会标记为历史数据。
+默认数据年龄限制为 30 秒，可按采集周期调整：
+
+```bash
+python fetch_metrics.py --url http://127.0.0.1:8000/latest.json --timeout 3 --max-age 30
+python -m unittest -v test_fetch_metrics
+```
+
+`--timeout` 是连接和读取等待超时，不是整个请求严格的总时限。
+当前快照使用无时区本地时间，客户端和采集端应使用一致时区并同步时钟；明显未来时间会被拒绝。
+退出码：0=数据完整且新鲜；1=请求失败；2=数据或参数错误；3=数据过期；4=数据新鲜但有采集失败指标。过期且缺失时优先返回 3。
+快照每次覆盖写入，仍可能在并发读取时得到未写完的 JSON；客户端会报告数据错误，本次未将服务端快照改为原子写入。
+本地文件服务只是实验辅助，不是生产 API。
